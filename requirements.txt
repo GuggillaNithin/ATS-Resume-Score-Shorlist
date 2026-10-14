@@ -1,0 +1,11 @@
+streamlit
+pdfminer.six
+numpy
+scikit-learn
+sentence-transformers
+pandas
+matplotlib
+requests
+python-dotenv
+openpyxl
+python-docx
