@@ -524,20 +524,25 @@ def render_bulk_screening():
         st.caption(f"Showing **{len(filtered_results)}** of {len(results)} screened candidates")
 
         # Official 6-column Layout Table
-        display_df = pd.DataFrame(filtered_results)[EXCEL_REPORT_COLUMNS]
-        st.dataframe(
-            display_df.style.format({"JD Match Score": "{:.1f}%"}).background_gradient(subset=["JD Match Score"], cmap="Blues"),
-            use_container_width=True,
-            hide_index=True
-        )
+        if not filtered_results:
+            st.warning("⚠️ No candidates match the current filter criteria (e.g. Min Match Score, Outcome, or Search query). Try lowering the 'Min Match Score' slider or resetting filters.")
+        else:
+            display_df = pd.DataFrame(filtered_results)[EXCEL_REPORT_COLUMNS]
+            st.dataframe(
+                display_df.style.format({"JD Match Score": "{:.1f}%"}).background_gradient(subset=["JD Match Score"], cmap="Blues"),
+                use_container_width=True,
+                hide_index=True
+            )
 
         # Excel Export Section
         st.markdown("#### 📥 Download ATS Candidate Report")
         ex_col1, _ = st.columns([1, 1])
         with ex_col1:
-            std_excel = generate_candidate_excel_report(filtered_results, default_role=job_title)
+            export_data = filtered_results if filtered_results else results
+            std_excel = generate_candidate_excel_report(export_data, default_role=job_title)
+            btn_label = "📥 Download Candidate Screening Report (.xlsx)" if filtered_results else "📥 Download All Screened Candidates (.xlsx)"
             st.download_button(
-                label="📥 Download Candidate Screening Report (.xlsx)",
+                label=btn_label,
                 data=std_excel,
                 file_name=get_report_filename("ATS_Candidate_Screening"),
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -807,12 +812,15 @@ def render_new_jd_matching():
                 use_container_width=True
             )
 
-        res_df = pd.DataFrame(evaluated)[EXCEL_REPORT_COLUMNS]
-        st.dataframe(
-            res_df.style.format({"JD Match Score": "{:.1f}%"}).background_gradient(subset=["JD Match Score"], cmap="Blues"),
-            use_container_width=True,
-            hide_index=True
-        )
+        if not evaluated:
+            st.info("No candidates match the criteria for this role.")
+        else:
+            res_df = pd.DataFrame(evaluated)[EXCEL_REPORT_COLUMNS]
+            st.dataframe(
+                res_df.style.format({"JD Match Score": "{:.1f}%"}).background_gradient(subset=["JD Match Score"], cmap="Blues"),
+                use_container_width=True,
+                hide_index=True
+            )
 
 
 def render_screening_history():
@@ -918,11 +926,10 @@ def main():
 if __name__ == "__main__":
     try:
         from streamlit.runtime.scriptrunner import get_script_run_ctx
-        if get_script_run_ctx() is not None:
-            main()
-        else:
+        if get_script_run_ctx() is None:
             from streamlit.web import cli as stcli
             sys.argv = ["streamlit", "run", os.path.abspath(__file__)]
             sys.exit(stcli.main())
     except Exception:
-        main()
+        pass
+    main()
